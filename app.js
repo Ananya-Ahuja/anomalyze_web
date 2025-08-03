@@ -23,24 +23,23 @@ function clearFormInnerAnimation() {
         formInner.style.transform = 'translateX(0)';
     }
 }
+
 function animateFormInner(from = 'right') {
     const formInner = document.querySelector('.form-inner');
     if (!formInner) return;
     formInner.style.animation = 'none';
     void formInner.offsetWidth;
 
-    const animationName = from === 'left' ? 'slideInLeft' : 'slideInRight';
+    // Only slide in from right now
+    const animationName = 'slideInRight';
     formInner.style.animation = `${animationName} 0.6s cubic-bezier(0.33,1,0.68,1) forwards`;
 }
-if (!document.getElementById('slideInFromLeftKeyframes')) {
+
+if (!document.getElementById('slideInRightKeyframes')) {
     const styleSheet = document.createElement('style');
-    styleSheet.id = 'slideInLeftKeyframes';
+    styleSheet.id = 'slideInRightKeyframes';
     styleSheet.type = 'text/css';
     styleSheet.innerText = `
-    @keyframes slideInLeft {
-        0%   { opacity: 0; transform: translateX(-70px); }
-        100% { opacity: 1; transform: translateX(0); }
-    }
     @keyframes slideOutLeft {
         0%   { opacity: 1; transform: translateX(0); }
         100% { opacity: 0; transform: translateX(-70px); }
@@ -77,6 +76,7 @@ function loginPage() {
         </div>
     `;
 }
+
 function signupPage() {
     return `
         <div class="center-stack">
@@ -99,6 +99,7 @@ function signupPage() {
         </div>
     `;
 }
+
 function otpPage() {
     return `
         <div class="center-stack">
@@ -153,48 +154,42 @@ function render(page, options = {}) {
     const currentFormInner = container.querySelector('.form-inner');
 
     // Helper to animate in the new page after swapping innerHTML
-    function animateAndBind(newPage, direction) {
+    function animateAndBind(newPage) {
         setTimeout(() => window.replayLogoAnimation(), 50);
 
-        // Animate the new form-inner in
-        animateFormInner(direction);
+        // Always animate from right now
+        animateFormInner('right');
 
         // Bind page-specific handlers
         attachPageHandlers(newPage);
     }
 
-    // Determine entrance animation direction
-    const direction = options.animateFromLeft ? 'left' :
-                      options.animateFromRight ? 'right' : null;
-
-    // If current content exists, animate exit first
+    // Exit animation and then swap content and animate in
     if (currentFormInner) {
         currentFormInner.style.animation = 'slideOutLeft 0.5s cubic-bezier(0.33,1,0.68,1) forwards';
 
         currentFormInner.addEventListener('animationend', function handler() {
             currentFormInner.removeEventListener('animationend', handler);
 
-            // Replace content after exit completes
             container.innerHTML = routes[page]();
-            animateAndBind(page, direction);
+            animateAndBind(page);
         });
     } else {
-        // No current .form-inner (first load etc)
+        // Initial load
         container.innerHTML = routes[page]();
-        animateAndBind(page, direction);
+        animateAndBind(page);
     }
 }
 
-// (Re)binds event listeners and logic for each page after content is swapped
 function attachPageHandlers(page) {
     if (page === 'login') {
         document.getElementById('signupLink').onclick = e => {
             e.preventDefault();
-            render('signup', { animateFromRight: true });
+            render('signup');
         };
         document.getElementById('forgotPassLink').onclick = e => {
             e.preventDefault();
-            render('otp', { animateFromRight: true });
+            render('otp');
         };
         document.getElementById('loginForm').onsubmit = e => {
             e.preventDefault();
@@ -203,7 +198,7 @@ function attachPageHandlers(page) {
     } else if (page === 'signup') {
         document.getElementById('loginLink').onclick = e => {
             e.preventDefault();
-            render('login', { animateFromLeft: true });
+            render('login');
         };
         document.getElementById('signupForm').onsubmit = e => {
             e.preventDefault();
@@ -213,7 +208,7 @@ function attachPageHandlers(page) {
                 alert('Passwords do not match.');
                 return;
             }
-            render('otp', { animateFromRight: true });
+            render('otp');
         };
     } else if (page === 'otp') {
         const inputs = [...Array(6).keys()].map(i => document.getElementById(`otp${i}`));
@@ -265,6 +260,7 @@ function attachPageHandlers(page) {
             render('welcome');
         };
     }
+
     // Always allow logo click to replay animation
     document.querySelectorAll('.anomalyze-logo').forEach(el => {
         el.onclick = window.replayLogoAnimation;
@@ -280,7 +276,7 @@ function hideSplashAndShowLogin() {
     setTimeout(() => {
         splash.style.display = 'none';
         splashShown = true;
-        render('login', { animateFromRight: true });
+        render('login');
     }, 680); // matches transition duration
 }
 
@@ -299,7 +295,7 @@ window.onload = () => {
                 hideSplashAndShowLogin();
             }
         }
-        // Base duration on video length if possible, up to 3s.
+        // Base duration on video length if possible, up to maxDelay.
         video.onloadedmetadata = function () {
             let dur = Math.max(minDelay, Math.min(maxDelay, video.duration * 1000));
             timeoutId = setTimeout(endSplash, dur);
@@ -314,8 +310,8 @@ window.onload = () => {
     }
 };
 window.onhashchange = () => {
-    if (!splashShown && document.getElementById('video-splash') && document.getElementById('video-splash').style.display!=='none') {
-        // Splash is still up, ignore hash changes until splash gone
+    if (!splashShown && document.getElementById('video-splash') && document.getElementById('video-splash').style.display !== 'none') {
+        // Splash still visible; ignore hash changes
         return;
     }
     const page = location.hash.replace('#', '') || 'login';

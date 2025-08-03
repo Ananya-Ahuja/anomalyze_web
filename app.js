@@ -1,7 +1,7 @@
 function logoComponent() {
     return `
         <div class="anomalyze-logo" onclick="replayLogoAnimation()">
-            <img src="/Users/ananyaahuja/Desktop/anomalyze_logo.png" alt="Anomalyze Logo" />
+            <img src="anomalyze_logo.png" alt="Anomalyze Logo" />
         </div>
     `;
 }
@@ -126,7 +126,7 @@ function welcomePage() {
     return `
         <div class="video-welcome">
             <video 
-                src="/Users/ananyaahuja/Desktop/welcomesplash.mp4"
+                src="welcomesplash.mp4"
                 autoplay
                 muted
                 playsinline

@@ -42,10 +42,10 @@ if (!document.getElementById('slideInRightKeyframes')) {
     styleSheet.innerText = `
     @keyframes slideOutLeft {
         0%   { opacity: 1; transform: translateX(0); }
-        100% { opacity: 0; transform: translateX(-70px); }
+        100% { opacity: 0; transform: translateX(-50px); }
     }
     @keyframes slideInRight {
-        0%   { opacity: 0; transform: translateX(70px); }
+        0%   { opacity: 0; transform: translateX(50px); }
         100% { opacity: 1; transform: translateX(0); }
     }`;
     document.head.appendChild(styleSheet);

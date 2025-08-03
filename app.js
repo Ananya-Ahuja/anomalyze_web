@@ -41,6 +41,10 @@ if (!document.getElementById('slideInFromLeftKeyframes')) {
         0%   { opacity: 0; transform: translateX(-70px); }
         100% { opacity: 1; transform: translateX(0); }
     }
+    @keyframes slideOutLeft {
+        0%   { opacity: 1; transform: translateX(0); }
+        100% { opacity: 0; transform: translateX(-70px); }
+    }
     @keyframes slideInRight {
         0%   { opacity: 0; transform: translateX(70px); }
         100% { opacity: 1; transform: translateX(0); }
@@ -145,14 +149,44 @@ const routes = {
 };
 
 function render(page, options = {}) {
-    window.location.hash = page;
-    document.getElementById('container').innerHTML = routes[page]();
-    setTimeout(() => window.replayLogoAnimation(), 50);
+    const container = document.getElementById('container');
+    const currentFormInner = container.querySelector('.form-inner');
 
+    // Helper to animate in the new page after swapping innerHTML
+    function animateAndBind(newPage, direction) {
+        setTimeout(() => window.replayLogoAnimation(), 50);
+
+        // Animate the new form-inner in
+        animateFormInner(direction);
+
+        // Bind page-specific handlers
+        attachPageHandlers(newPage);
+    }
+
+    // Determine entrance animation direction
     const direction = options.animateFromLeft ? 'left' :
                       options.animateFromRight ? 'right' : null;
-    animateFormInner(direction);
 
+    // If current content exists, animate exit first
+    if (currentFormInner) {
+        currentFormInner.style.animation = 'slideOutLeft 0.5s cubic-bezier(0.33,1,0.68,1) forwards';
+
+        currentFormInner.addEventListener('animationend', function handler() {
+            currentFormInner.removeEventListener('animationend', handler);
+
+            // Replace content after exit completes
+            container.innerHTML = routes[page]();
+            animateAndBind(page, direction);
+        });
+    } else {
+        // No current .form-inner (first load etc)
+        container.innerHTML = routes[page]();
+        animateAndBind(page, direction);
+    }
+}
+
+// (Re)binds event listeners and logic for each page after content is swapped
+function attachPageHandlers(page) {
     if (page === 'login') {
         document.getElementById('signupLink').onclick = e => {
             e.preventDefault();
@@ -192,26 +226,6 @@ function render(page, options = {}) {
                 if (e.key === 'Backspace' && !this.value && idx > 0) inputs[idx - 1].focus();
             });
         });
-        document.getElementById('otpForm').onsubmit = e => {
-            e.preventDefault();
-            const code = inputs.map(inp => inp.value).join('');
-            if (code.length !== 6) {
-                alert('Enter all 6 digits');
-                return;
-            }
-            render('welcome');
-        };
-    } else if (page === 'otp') {
-        const inputs = [...Array(6).keys()].map(i => document.getElementById(`otp${i}`));
-        inputs.forEach((el, idx) => {
-            el.addEventListener('input', function () {
-                this.value = this.value.replace(/[^0-9]/g, '');
-                if (this.value && idx < 5) inputs[idx + 1].focus();
-            });
-            el.addEventListener('keydown', function (e) {
-                if (e.key === 'Backspace' && !this.value && idx > 0) inputs[idx - 1].focus();
-            });
-        });
 
         const resendBtn = document.getElementById('resendBtn');
         const resendTimerElem = document.getElementById('resendTimer');
@@ -233,7 +247,6 @@ function render(page, options = {}) {
         }
 
         resendBtn.onclick = () => {
-            // Your resend OTP logic goes here (API call, etc.)
             alert('Resend OTP requested!');
             countdown = 60;
             startTimer();
@@ -246,14 +259,13 @@ function render(page, options = {}) {
             const code = inputs.map(inp => inp.value).join('');
             if (code.length !== 6) {
                 alert('Enter all 6 digits');
-               return;
+                return;
             }
-            clearInterval(intervalId);  // stop timer on success navigation
+            clearInterval(intervalId);
             render('welcome');
         };
     }
-
-
+    // Always allow logo click to replay animation
     document.querySelectorAll('.anomalyze-logo').forEach(el => {
         el.onclick = window.replayLogoAnimation;
     });
